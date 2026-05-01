@@ -1,0 +1,245 @@
+{
+  "_description": "Specification for odft_template.svg. Coordinates are in SVG user units (px). All elements are identified by inkscape:label. This file documents what code can safely read or modify.",
+
+  "document": {
+    "filename": "odft_template.svg",
+    "width_px": 341.31249,
+    "height_px": 739.775,
+    "export_width_px": 1290,
+    "export_height_px": 2796,
+    "viewBox": "0 0 341.31249 739.775"
+  },
+
+  "colour_palette": {
+    "_note": "All colours used across the template.",
+    "background_light": "#f2ede7",
+    "background_dark":  "#242424",
+    "blue":             "#0064b2",
+    "blue_light":       "#61baff",
+    "yellow":           "#f7bb01",
+    "yellow_alt":       "#f6bc02",
+    "red":              "#f60003",
+    "grey":             "#5a6161"
+  },
+
+  "defs": {
+    "_note": "One unused clipPath (clippath5139) exists and can be removed. All 12 linearGradients are actively referenced.",
+    "unused": ["clippath5139"],
+    "gradients": {
+      "_note": "Three base gradients define colour stops; nine applied gradients reference them with specific position transforms. The grey ribbon pair (2739) is used by the grey-out medal placeholders. The coloured ribbon pair (2683) is used by the earned medals. The calendar header gradient (19) fills the calendar top bar.",
+      "base_grey_ribbon":     "linearGradient2739",
+      "base_coloured_ribbon": "linearGradient2683",
+      "base_calendar_header": "linearGradient19",
+      "applied": {
+        "distance_grey_ribbon_bottom":     "linearGradient1853",
+        "distance_grey_ribbon_top":        "linearGradient4763",
+        "consistency_grey_ribbon_bottom":  "linearGradient7112",
+        "consistency_grey_ribbon_top":     "linearGradient7114",
+        "calendar_header":                 "linearGradient8",
+        "distance_medal_ribbon_bottom":    "linearGradient311",
+        "distance_medal_ribbon_top":       "linearGradient309",
+        "consistency_medal_ribbon_bottom": "linearGradient2685",
+        "consistency_medal_ribbon_top":    "linearGradient2687"
+      }
+    }
+  },
+
+  "layout": {
+    "_note": "Key structural regions of the canvas.",
+    "header_bars": {
+      "label": "header-bars",
+      "description": "Three coloured bars across the very top of the card.",
+      "locked": true,
+      "bars": [
+        { "fill": "#0064b2", "y": 0,      "height": 19.665 },
+        { "fill": "#f7bb01", "y": 17.825, "height": 18.988 },
+        { "fill": "#f60003", "y": 34.972, "height": 13.980 }
+      ]
+    },
+    "background_top": {
+      "label": "background-top",
+      "fill": "#f2ede7",
+      "x": 0, "y": 0,
+      "width": 341.3125, "height": 621.648,
+      "locked": true
+    },
+    "background_bottom": {
+      "label": "background-bottom",
+      "fill": "#242424",
+      "x": 0.132, "y": 578.269,
+      "width": 341.180, "height": 161.506,
+      "locked": true
+    }
+  },
+
+  "editable_elements": {
+    "_note": "Elements a script is expected to update for each monthly card. All identified by inkscape:label.",
+
+    "text": [
+      {
+        "label": "title-1",
+        "description": "First word of the operation title, top-left aligned",
+        "x": 49.666, "y": 123.109,
+        "font_size_px": 43.813,
+        "font_family": "TeX Gyre Adventor",
+        "fill": "#242424",
+        "default_text": "OPERATION",
+        "editable": false,
+        "locked": true
+      },
+      {
+        "label": "title-2",
+        "description": "Main operation name, large, centre-anchored",
+        "x": 171.769, "y": 178.064,
+        "font_size_px": 71.811,
+        "font_family": "TeX Gyre Adventor",
+        "fill": "#242424",
+        "default_text": "VIKING",
+        "editable": true,
+        "locked": true
+      },
+      {
+        "label": "title-3",
+        "description": "Operation subtitle, centre-anchored",
+        "x": 171.234, "y": 213.927,
+        "font_size_px": 44.601,
+        "font_family": "TeX Gyre Adventor",
+        "fill": "#242424",
+        "default_text": "LONGBOAT",
+        "editable": true,
+        "locked": true
+      },
+      {
+        "label": "subheader",
+        "description": "Hashtag / subheader line, centre-anchored",
+        "x": 170.656, "y": 358.171,
+        "font_size_px": 17.783,
+        "font_family": "TeX Gyre Adventor",
+        "fill": "#242424",
+        "default_text": "#VikingTikTok",
+        "editable": true
+      },
+      {
+        "label": "month-text",
+        "description": "Month name shown between the two medals",
+        "x": 169.626, "y": 437.851,
+        "font_size_px": 9.252,
+        "font_family": "Franklin Gothic Demi",
+        "fill": "#000000",
+        "default_text": "April",
+        "editable": true,
+        "locked": true
+      },
+      {
+        "label": "distance-medal-ribbon-top",
+        "description": "Distance count shown on the medal badge. Note: this label is shared with the ribbon path element — the text is distinguished by having x/y attributes.",
+        "x": -50.293, "y": 462.220,
+        "font_size_px": 16.933,
+        "font_family": "Franklin Gothic Demi",
+        "fill": "#000000",
+        "default_text": "5",
+        "editable": true,
+        "parent_group": "distance-medal"
+      },
+      {
+        "label": "consistency-medal-number",
+        "description": "Consistency count shown on the medal badge.",
+        "x": 388.137, "y": 458.256,
+        "font_size_px": 16.933,
+        "font_family": "Franklin Gothic Demi",
+        "fill": "#000000",
+        "default_text": "1",
+        "editable": true,
+        "parent_group": "consistency-medal"
+      }
+    ],
+
+    "toggleable_groups": [
+      {
+        "label": "distance-medal",
+        "description": "Full-colour earned distance medal. Show when the distance medal is earned.",
+        "default_display": "none",
+        "transform": "translate(125.02965, 0.19832598)"
+      },
+      {
+        "label": "distance-medal-grey-out",
+        "description": "Grey placeholder distance medal. Hide when the distance medal is earned.",
+        "default_display": "inline"
+      },
+      {
+        "label": "consistency-medal",
+        "description": "Full-colour earned consistency medal. Show when the consistency medal is earned.",
+        "default_display": "inline",
+        "transform": "translate(-118.59049, 0)"
+      },
+      {
+        "label": "consistency-medal-grey-out",
+        "description": "Grey placeholder consistency medal. Hide when the consistency medal is earned.",
+        "default_display": "inline"
+      }
+    ],
+
+    "calendar_day_grid": {
+      "description": "5x7 grid of circle/ellipse elements inside the calendar-days group.",
+      "parent_group": "calendar-days",
+      "label_pattern": "calendar-day-WW-DD",
+      "label_example": "calendar-day-03-05 = week 3, Thursday",
+      "columns": {
+        "01": "Sunday",
+        "02": "Monday",
+        "03": "Tuesday",
+        "04": "Wednesday",
+        "05": "Thursday",
+        "06": "Friday",
+        "07": "Saturday"
+      },
+      "rows": {
+        "01": "Week 1",
+        "02": "Week 2",
+        "03": "Week 3",
+        "04": "Week 4",
+        "05": "Week 5"
+      },
+      "style_rules": {
+        "weekday_fill":          "#242424",
+        "weekday_fill_opacity":  "1",
+        "weekend_fill":          "#000000",
+        "weekend_fill_opacity":  "0.116777",
+        "in_month_display":      "inline",
+        "out_of_month_display":  "none"
+      },
+      "geometry": {
+        "_note": "Columns 02-07 use <circle>. Column 01 (Sunday) uses <ellipse> with transform='scale(1,-1)' — cy is stored as a negative value in the SVG to compensate.",
+        "weekday_radius": 3.5246286,
+        "weekend_radius": 3.4585011,
+        "col_cx": {
+          "01": 140.678,
+          "02": 150.506,
+          "03": 160.333,
+          "04": 170.160,
+          "05": 179.988,
+          "06": 189.815,
+          "07": 199.643
+        },
+        "row_cy": {
+          "01": 458.882,
+          "02": 468.709,
+          "03": 478.537,
+          "04": 488.364,
+          "05": 498.192
+        }
+      }
+    }
+  },
+
+  "static_elements": {
+    "_note": "These elements are not expected to change between monthly cards.",
+    "footer_swirl":    { "label": "footer-swirl",    "description": "Decorative swirl/rings in the lower section of the card" },
+    "viking":          { "label": "viking",           "description": "Viking helmet silhouette graphic in the centre" },
+    "logo_axe":        { "label": "logo-axe",         "description": "Small axe logo mark in the footer area" },
+    "calendar_outer":  { "label": "calendar-outer",   "description": "Rounded rectangle border of the calendar widget", "x": 133.257, "y": 441.645, "width": 74.120, "height": 63.365 },
+    "calendar_header": { "label": "calendar-header",  "description": "Coloured header bar of the calendar widget, filled with the tricolour gradient", "x": 133.257, "y": 441.645, "width": 74.120, "height": 9.950 },
+    "distance_text":   { "label": "distance-text",    "description": "Static 'Distance' label above the distance medal area", "x": 74.436, "y": 409.866 },
+    "consistency_text":{ "label": "consistency-text", "description": "Static 'Consistency' label above the consistency medal area", "x": 268.994, "y": 409.141 }
+  }
+}
