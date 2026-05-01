@@ -87,6 +87,28 @@ class TestDistanceMilestone:
              activity_type=ActivityType.STRENGTH)
         assert distance_milestone(conn, reference_date=REF) == 0
 
+    def test_treadmill_distance_counts(self, conn: sqlite3.Connection) -> None:
+        """Treadmill activities contribute to the distance milestone."""
+        _add(conn, REF - datetime.timedelta(days=3), distance=6.0,
+             activity_type=ActivityType.TREADMILL)
+        assert distance_milestone(conn, reference_date=REF) == 6
+
+    def test_non_running_distance_excluded(self, conn: sqlite3.Connection) -> None:
+        """Non-running activities (e.g. Bike, Hike) are excluded even with a distance."""
+        for activity_type in (ActivityType.BIKE, ActivityType.HIKE, ActivityType.TRAIL_RUN,
+                              ActivityType.WALK, ActivityType.BIKE_INDOOR):
+            _add(conn, REF - datetime.timedelta(days=3), distance=20.0,
+                 activity_type=activity_type)
+        assert distance_milestone(conn, reference_date=REF) == 0
+
+    def test_run_beats_treadmill(self, conn: sqlite3.Connection) -> None:
+        """Run and Treadmill both count; the maximum is returned."""
+        _add(conn, REF - datetime.timedelta(days=5), distance=5.0,
+             activity_type=ActivityType.TREADMILL)
+        _add(conn, REF - datetime.timedelta(days=3), distance=9.5,
+             activity_type=ActivityType.RUN)
+        assert distance_milestone(conn, reference_date=REF) == 9
+
 
 class TestConsistencyMilestone:
     """Tests for consistency_milestone()."""

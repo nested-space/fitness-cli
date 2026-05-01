@@ -3,7 +3,8 @@ Milestone calculation logic for distance and consistency badges.
 
 Responsibilities:
 - Calculate the distance milestone: floor of the maximum single-activity
-  distance recorded in the last 4 calendar weeks.
+  distance recorded in the last 4 calendar weeks, restricted to running
+  activities (Run and Treadmill).
 - Calculate the consistency milestone: the number of consecutive complete
   weeks immediately preceding the current (incomplete) week.
 - A week runs Monday–Sunday.
@@ -18,6 +19,7 @@ import math
 import sqlite3
 from collections import defaultdict
 
+from fitness_cli.config.settings import DISTANCE_ACTIVITY_TYPES
 from fitness_cli.database.models import Intensity
 
 
@@ -40,7 +42,8 @@ def distance_milestone(
     """Return the distance milestone value for the current period.
 
     The milestone is the floor of the maximum single-activity distance (km)
-    recorded in the 4-week window ending on the day before reference_date.
+    recorded in the 4-week window ending on the day before reference_date,
+    considering only running activities (Run and Treadmill).
     A milestone of 0 means no qualifying activity exists.
 
     Args:
@@ -49,20 +52,22 @@ def distance_milestone(
             Useful for testing.
 
     Returns:
-        Floor of the maximum distance (km) in the last 4 weeks, as an integer.
-        Returns 0 if no activities with a distance exist in that window.
+        Floor of the maximum running distance (km) in the last 4 weeks.
+        Returns 0 if no qualifying activities exist in that window.
     """
     today = reference_date or datetime.date.today()
     window_start = today - datetime.timedelta(weeks=4)
 
+    placeholders = ",".join("?" * len(DISTANCE_ACTIVITY_TYPES))
     cur = conn.execute(
-        """
+        f"""
         SELECT MAX(distance_km) AS max_distance
         FROM activities
         WHERE date >= ? AND date < ?
           AND distance_km IS NOT NULL
+          AND activity_type IN ({placeholders})
         """,
-        (window_start.isoformat(), today.isoformat()),
+        (window_start.isoformat(), today.isoformat(), *DISTANCE_ACTIVITY_TYPES),
     )
     row = cur.fetchone()
     if row is None or row["max_distance"] is None:

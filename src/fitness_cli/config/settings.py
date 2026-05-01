@@ -18,6 +18,13 @@ DEFAULT_DB_PATH: Path = Path.home() / ".fitness-wallpaper" / "fitness.db"
 DEFAULT_TEMPLATE_PATH: Path = Path(__file__).parents[3] / "wallpaper-template.svg"
 
 # ---------------------------------------------------------------------------
+# Milestone thresholds
+# ---------------------------------------------------------------------------
+
+#: Activity types that count towards the distance milestone (running only).
+DISTANCE_ACTIVITY_TYPES: tuple[str, ...] = ("Run", "Treadmill")
+
+# ---------------------------------------------------------------------------
 # Calendar day fill colours
 # ---------------------------------------------------------------------------
 
