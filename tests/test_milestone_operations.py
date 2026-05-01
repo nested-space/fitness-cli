@@ -161,8 +161,57 @@ class TestConsistencyMilestone:
         assert consistency_milestone(conn, reference_date=REF) == 0
 
     def test_current_week_activities_excluded(self, conn: sqlite3.Connection) -> None:
-        """Activities in the current week do not count towards the milestone."""
-        # Lots of activity this week — should not affect the count.
-        for day_offset in range(7):
-            _add(conn, REF + datetime.timedelta(days=day_offset), intensity=Intensity.HIGH)
+        """Current week counts if it already meets the criteria."""
+        # REF is Monday 2026-04-27; add 3 days' worth of activity within that week.
+        _add(conn, REF, intensity=Intensity.MODERATE)
+        _add(conn, REF + datetime.timedelta(days=2), intensity=Intensity.HIGH)
+        _add(conn, REF + datetime.timedelta(days=4), intensity=Intensity.LIGHT)
+        assert consistency_milestone(conn, reference_date=REF + datetime.timedelta(days=4)) == 1
+
+    def test_current_week_incomplete_does_not_block_previous_streak(
+        self, conn: sqlite3.Connection
+    ) -> None:
+        """A not-yet-complete current week is skipped; prior complete weeks still count."""
+        # Previous week: complete.
+        prev_mon = REF - datetime.timedelta(weeks=1)
+        _add(conn, prev_mon, intensity=Intensity.MODERATE)
+        _add(conn, prev_mon + datetime.timedelta(days=2), intensity=Intensity.HIGH)
+        _add(conn, prev_mon + datetime.timedelta(days=4), intensity=Intensity.LIGHT)
+        # Current week: only 1 activity — not yet complete.
+        _add(conn, REF, intensity=Intensity.HIGH)
+        assert consistency_milestone(conn, reference_date=REF) == 1
+
+    def test_current_week_complete_plus_previous_gives_two(
+        self, conn: sqlite3.Connection
+    ) -> None:
+        """Current week complete AND previous week complete → streak = 2."""
+        for weeks_back in (0, 1):
+            week_mon = REF - datetime.timedelta(weeks=weeks_back)
+            _add(conn, week_mon, intensity=Intensity.MODERATE)
+            _add(conn, week_mon + datetime.timedelta(days=2), intensity=Intensity.HIGH)
+            _add(conn, week_mon + datetime.timedelta(days=4), intensity=Intensity.LIGHT)
+        assert consistency_milestone(conn, reference_date=REF + datetime.timedelta(days=4)) == 2
+
+    def test_two_activities_same_day_count_as_one_day(self, conn: sqlite3.Connection) -> None:
+        """Multiple activities on the same day count as a single active day."""
+        prev_mon = REF - datetime.timedelta(weeks=1)
+        # Monday: two sessions — should still be 1 day, not 2.
+        _add(conn, prev_mon, intensity=Intensity.MODERATE)
+        _add(conn, prev_mon, intensity=Intensity.HIGH)
+        # Wednesday and Friday: one session each.
+        _add(conn, prev_mon + datetime.timedelta(days=2), intensity=Intensity.LIGHT)
+        _add(conn, prev_mon + datetime.timedelta(days=4), intensity=Intensity.LIGHT)
+        # 3 distinct days, 1 strong day — should NOT be complete (needs 2 strong days).
         assert consistency_milestone(conn, reference_date=REF) == 0
+
+    def test_day_is_strong_if_any_activity_is_moderate(self, conn: sqlite3.Connection) -> None:
+        """A day with mixed intensities counts as strong if any session is moderate+."""
+        prev_mon = REF - datetime.timedelta(weeks=1)
+        # Monday: light + moderate → counts as a strong day.
+        _add(conn, prev_mon, intensity=Intensity.LIGHT)
+        _add(conn, prev_mon, intensity=Intensity.MODERATE)
+        # Wednesday and Friday: moderate each.
+        _add(conn, prev_mon + datetime.timedelta(days=2), intensity=Intensity.MODERATE)
+        _add(conn, prev_mon + datetime.timedelta(days=4), intensity=Intensity.HIGH)
+        # 3 distinct days, 3 strong days → complete.
+        assert consistency_milestone(conn, reference_date=REF) == 1

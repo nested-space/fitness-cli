@@ -157,9 +157,10 @@ Each layer has **exactly one responsibility**:
 ### Consistency Milestone
 
 - A **complete week** (Mon–Sun) satisfies **both**:
-  - At least **2** activities with intensity `moderate` or `high`.
-  - At least **3** activities in total.
-- Milestone value: the count of **consecutive complete weeks** ending before the current (incomplete) week.
+  - At least **2** distinct days with at least one activity of intensity `moderate` or higher.
+  - At least **3** distinct days with any activity.
+- Note: multiple activities on the same day count as a single day.
+- Milestone value: the count of **consecutive complete weeks**, starting from the current week and walking backwards. The current (potentially incomplete) week is included if it already meets the criteria; if not, the streak starts from the previous week.
 - Medal shown (coloured) when value ≥ 1.
 
 ## SVG Element Reference

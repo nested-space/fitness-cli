@@ -6,10 +6,12 @@ Responsibilities:
   distance recorded in the last 4 calendar weeks, restricted to running
   activities (Run and Treadmill).
 - Calculate the consistency milestone: the number of consecutive complete
-  weeks immediately preceding the current (incomplete) week.
+  weeks, starting from the current week and walking backwards.
 - A week runs Monday–Sunday.
-- A complete week requires at least 2 moderate/high activities AND at least
-  3 activities in total.
+- A complete week requires at least 3 distinct days with any activity AND
+  at least 2 distinct days where at least one activity is moderate/high/peak.
+- The current (potentially incomplete) week is included if it already meets
+  the criteria; otherwise the streak starts from the previous week.
 
 Neither function opens a database connection — callers provide the connection.
 """
@@ -81,16 +83,20 @@ def consistency_milestone(
 ) -> int:
     """Return the consistency milestone value.
 
-    Counts consecutive complete weeks ending immediately before the week that
-    contains reference_date. The current (potentially incomplete) week is not
-    counted.
+    Counts consecutive complete weeks, starting from the current week and
+    walking backwards. The current week is included in the count if it already
+    satisfies the completion criteria; otherwise the streak starts from the
+    preceding week.
 
-    A week is complete when it contains:
-    - At least 3 activities in total, AND
-    - At least 2 activities with intensity 'moderate' or 'high'.
+    A week is complete when it has:
+    - At least 3 distinct days with any activity recorded, AND
+    - At least 2 distinct days on which at least one activity is
+      moderate, high, or peak intensity.
 
-    Weeks are scanned in reverse chronological order starting from the week
-    before the current week. Scanning stops at the first incomplete week.
+    Note: multiple activities on the same day count as one day.
+
+    Weeks are scanned in reverse chronological order. Scanning stops at the
+    first incomplete week (after the initial current-week skip if needed).
 
     Args:
         conn: Open SQLite connection with the activities table present.
@@ -98,41 +104,52 @@ def consistency_milestone(
             Useful for testing.
 
     Returns:
-        Count of consecutive complete weeks before the current week.
-        Returns 0 if the immediately preceding week was not complete.
+        Count of consecutive complete weeks including the current week if
+        already complete. Returns 0 if no complete week is found.
     """
     today = reference_date or datetime.date.today()
     current_week_start = _week_start(today)
 
-    # Fetch all activities before the current week.
+    _strong = frozenset((Intensity.MODERATE.value, Intensity.HIGH.value, Intensity.PEAK.value))
+
+    # Fetch all activities up to and including today (current week is eligible).
     cur = conn.execute(
-        "SELECT date, intensity FROM activities WHERE date < ? ORDER BY date ASC;",
-        (current_week_start.isoformat(),),
+        "SELECT date, intensity FROM activities WHERE date <= ? ORDER BY date ASC;",
+        (today.isoformat(),),
     )
     rows = cur.fetchall()
 
     if not rows:
         return 0
 
-    # Group activities by their week start (Monday).
-    week_activities: dict[datetime.date, list[str]] = defaultdict(list)
+    # For each week, track the set of active days and the set of "strong" days.
+    # A day is strong if any activity logged on it is moderate/high/peak.
+    week_days: dict[datetime.date, set[datetime.date]] = defaultdict(set)
+    week_strong_days: dict[datetime.date, set[datetime.date]] = defaultdict(set)
     for row in rows:
         d = datetime.date.fromisoformat(row["date"])
-        week_activities[_week_start(d)].append(row["intensity"])
+        week = _week_start(d)
+        week_days[week].add(d)
+        if row["intensity"] in _strong:
+            week_strong_days[week].add(d)
 
-    # Walk backwards week by week from the week before current_week_start.
+    def _is_complete(week: datetime.date) -> bool:
+        total = len(week_days.get(week, set()))
+        strong = len(week_strong_days.get(week, set()))
+        return total >= 3 and strong >= 2
+
+    # Walk backwards starting from the current week.
+    # If the current week is not yet complete, skip it and begin the streak
+    # from the previous week — prior complete weeks still count.
     consecutive = 0
-    week = current_week_start - datetime.timedelta(weeks=1)
+    week = current_week_start
 
     while True:
-        intensities = week_activities.get(week, [])
-        total = len(intensities)
-        strong = sum(
-            1 for i in intensities
-            if i in (Intensity.MODERATE.value, Intensity.HIGH.value, Intensity.PEAK.value)
-        )
-        if total >= 3 and strong >= 2:
+        if _is_complete(week):
             consecutive += 1
+            week -= datetime.timedelta(weeks=1)
+        elif week == current_week_start:
+            # Current week not yet complete — skip it, start streak from prev week.
             week -= datetime.timedelta(weeks=1)
         else:
             break
