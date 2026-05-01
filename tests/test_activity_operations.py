@@ -15,6 +15,7 @@ from fitness_cli.operations.activity_operations import (
     get_activity,
     list_activities,
     list_last_n_activities,
+    update_activity,
 )
 
 
@@ -166,6 +167,66 @@ class TestGetActivity:
         activity = get_activity(conn, aid)
         assert activity is not None
         assert activity.id == aid
+
+
+class TestUpdateActivity:
+    """Tests for update_activity()."""
+
+    def test_update_all_fields_returns_updated_activity(
+        self, conn: sqlite3.Connection
+    ) -> None:
+        """All supplied fields are written and the refreshed Activity is returned."""
+        aid = _add_run(conn)
+        updated = update_activity(
+            conn,
+            aid,
+            date=datetime.date(2026, 5, 1),
+            activity_type=ActivityType.HIKE,
+            distance_km=12.5,
+            duration_minutes=90.0,
+            intensity=Intensity.HIGH,
+        )
+        assert updated is not None
+        assert updated.date == datetime.date(2026, 5, 1)
+        assert updated.activity_type == ActivityType.HIKE
+        assert updated.distance_km == 12.5
+        assert updated.duration_minutes == 90.0
+        assert updated.intensity == Intensity.HIGH
+
+    def test_update_partial_only_changes_specified_fields(
+        self, conn: sqlite3.Connection
+    ) -> None:
+        """Fields not supplied retain their previous values."""
+        aid = _add_run(conn, distance=8.2, intensity=Intensity.MODERATE)
+        updated = update_activity(conn, aid, intensity=Intensity.HIGH)
+        assert updated is not None
+        assert updated.intensity == Intensity.HIGH
+        # Untouched fields preserved
+        assert updated.activity_type == ActivityType.RUN
+        assert updated.distance_km == 8.2
+        assert updated.duration_minutes == 45.0
+
+    def test_update_can_set_distance_to_none(self, conn: sqlite3.Connection) -> None:
+        """Passing distance_km=None explicitly clears it to NULL."""
+        aid = _add_run(conn, distance=8.2)
+        updated = update_activity(conn, aid, distance_km=None)
+        assert updated is not None
+        assert updated.distance_km is None
+
+    def test_update_no_fields_returns_existing_activity(
+        self, conn: sqlite3.Connection
+    ) -> None:
+        """No-op call returns the row unchanged."""
+        aid = _add_run(conn, distance=8.2, intensity=Intensity.MODERATE)
+        result = update_activity(conn, aid)
+        assert result is not None
+        assert result.id == aid
+        assert result.distance_km == 8.2
+        assert result.intensity == Intensity.MODERATE
+
+    def test_update_nonexistent_id_returns_none(self, conn: sqlite3.Connection) -> None:
+        """Returns None when no row matches the id."""
+        assert update_activity(conn, 99999, intensity=Intensity.HIGH) is None
 
 
 class TestListLastNActivities:

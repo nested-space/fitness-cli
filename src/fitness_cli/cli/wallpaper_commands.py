@@ -54,6 +54,7 @@ def wallpaper_group() -> None:
 @wallpaper_group.command("generate")
 @click.option(
     "--month",
+    "-m",
     "month_str",
     default=None,
     metavar="YYYY-MM",
@@ -61,6 +62,7 @@ def wallpaper_group() -> None:
 )
 @click.option(
     "--template",
+    "-T",
     "template_path_str",
     default=None,
     metavar="PATH",
@@ -68,6 +70,7 @@ def wallpaper_group() -> None:
 )
 @click.option(
     "--output",
+    "-o",
     "output_path_str",
     default="output.svg",
     metavar="PATH",

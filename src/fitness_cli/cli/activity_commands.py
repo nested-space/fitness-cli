@@ -18,11 +18,14 @@ from fitness_cli.database.models import Activity, ActivityInput, ActivityType, I
 from fitness_cli.display.activity_table import build_activity_table
 from fitness_cli.display.calendar_display import render_calendar
 from fitness_cli.operations.activity_operations import (
+    UNSET,
+    Unset,
     add_activity,
     build_active_days,
     delete_activity,
     list_activities,
     list_last_n_activities,
+    update_activity,
 )
 
 _console = Console()
@@ -36,6 +39,7 @@ def activity_group() -> None:
 @activity_group.command("add")
 @click.option(
     "--date",
+    "-d",
     "date_str",
     required=True,
     metavar="YYYY-MM-DD",
@@ -43,14 +47,23 @@ def activity_group() -> None:
 )
 @click.option(
     "--type",
+    "-a",
     "activity_type",
     required=True,
     type=click.Choice([t.value for t in ActivityType], case_sensitive=False),
     help="Activity category.",
 )
-@click.option("--distance", "distance_km", type=float, default=None, help="Distance in km.")
+@click.option(
+    "--distance",
+    "-k",
+    "distance_km",
+    type=float,
+    default=None,
+    help="Distance in km.",
+)
 @click.option(
     "--duration",
+    "-t",
     "duration_minutes",
     required=True,
     type=float,
@@ -58,6 +71,7 @@ def activity_group() -> None:
 )
 @click.option(
     "--intensity",
+    "-i",
     required=True,
     type=click.Choice([i.value for i in Intensity], case_sensitive=False),
     help="Self-reported intensity level.",
@@ -97,6 +111,7 @@ def add_cmd(
 @activity_group.command("list")
 @click.option(
     "--month",
+    "-m",
     "month_str",
     default=None,
     metavar="YYYY-MM",
@@ -114,6 +129,7 @@ def list_cmd(month_str: str | None) -> None:
 @activity_group.command("recent")
 @click.option(
     "--count",
+    "-c",
     "count",
     default=10,
     show_default=True,
@@ -134,6 +150,7 @@ def recent_cmd(count: int) -> None:
 @activity_group.command("show")
 @click.option(
     "--month",
+    "-m",
     "month_str",
     default=None,
     metavar="YYYY-MM",
@@ -172,6 +189,107 @@ def delete_cmd(activity_id: int) -> None:
     else:
         click.echo(f"Error: no activity with ID {activity_id}.", err=True)
         sys.exit(1)
+
+
+@activity_group.command("update")
+@click.argument("activity_id", type=int)
+@click.option(
+    "--date",
+    "-d",
+    "date_str",
+    default=None,
+    metavar="YYYY-MM-DD",
+    help="New date for the activity.",
+)
+@click.option(
+    "--type",
+    "-a",
+    "activity_type",
+    default=None,
+    type=click.Choice([t.value for t in ActivityType], case_sensitive=False),
+    help="New activity category.",
+)
+@click.option(
+    "--distance",
+    "-k",
+    "distance_km",
+    default=None,
+    type=float,
+    help="New distance in km.",
+)
+@click.option(
+    "--duration",
+    "-t",
+    "duration_minutes",
+    default=None,
+    type=float,
+    help="New duration in minutes.",
+)
+@click.option(
+    "--intensity",
+    "-i",
+    default=None,
+    type=click.Choice([i.value for i in Intensity], case_sensitive=False),
+    help="New intensity level.",
+)
+def update_cmd(  # pylint: disable=too-many-arguments,too-many-positional-arguments
+    activity_id: int,
+    date_str: str | None,
+    activity_type: str | None,
+    distance_km: float | None,
+    duration_minutes: float | None,
+    intensity: str | None,
+) -> None:
+    """Update fields of an existing activity by ID.
+
+    Only fields supplied as flags are written; omitted fields are left
+    unchanged. Note: distance cannot be cleared to NULL via the CLI — delete
+    and re-add the activity if that is required.
+    """
+    if all(
+        v is None
+        for v in (date_str, activity_type, distance_km, duration_minutes, intensity)
+    ):
+        click.echo("Error: specify at least one field to update.", err=True)
+        sys.exit(1)
+
+    date_value: datetime.date | Unset = UNSET
+    if date_str is not None:
+        try:
+            date_value = datetime.date.fromisoformat(date_str)
+        except ValueError:
+            click.echo(f"Error: invalid date '{date_str}'. Use YYYY-MM-DD format.", err=True)
+            sys.exit(1)
+
+    type_value: ActivityType | Unset = (
+        ActivityType(activity_type) if activity_type is not None else UNSET
+    )
+    distance_value: float | None | Unset = (
+        distance_km if distance_km is not None else UNSET
+    )
+    duration_value: float | Unset = (
+        duration_minutes if duration_minutes is not None else UNSET
+    )
+    intensity_value: Intensity | Unset = (
+        Intensity(intensity) if intensity is not None else UNSET
+    )
+
+    conn = get_connection()
+    updated = update_activity(
+        conn,
+        activity_id,
+        date=date_value,
+        activity_type=type_value,
+        distance_km=distance_value,
+        duration_minutes=duration_value,
+        intensity=intensity_value,
+    )
+    conn.close()
+
+    if updated is None:
+        click.echo(f"Error: no activity with ID {activity_id}.", err=True)
+        sys.exit(1)
+    _console.print(f"[green]✓[/green] Updated activity [bold]#{activity_id}[/bold].")
 
 
 # ---------------------------------------------------------------------------

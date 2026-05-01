@@ -98,6 +98,82 @@ def list_activities(
     return [_row_to_activity(row) for row in cur.fetchall()]
 
 
+class Unset:
+    """Sentinel type for fields not provided to update_activity()."""
+
+
+#: Public sentinel value indicating "do not change this field" in update_activity().
+UNSET: Unset = Unset()
+
+
+_UPDATE_COLUMNS: dict[str, str] = {
+    "date": "date",
+    "activity_type": "activity_type",
+    "distance_km": "distance_km",
+    "duration_minutes": "duration_minutes",
+    "intensity": "intensity",
+}
+
+
+def update_activity(  # pylint: disable=too-many-arguments
+    conn: sqlite3.Connection,
+    activity_id: int,
+    *,
+    date: datetime.date | Unset = UNSET,
+    activity_type: ActivityType | Unset = UNSET,
+    distance_km: float | None | Unset = UNSET,
+    duration_minutes: float | Unset = UNSET,
+    intensity: Intensity | Unset = UNSET,
+) -> Activity | None:
+    """Partially update an activity, writing only fields that were supplied.
+
+    Each keyword argument defaults to the module-level UNSET sentinel.
+    Fields equal to UNSET are not touched; fields with any other value
+    (including None for distance_km) are written. This lets callers
+    distinguish "leave alone" from "clear to NULL" — the latter being
+    meaningful only for distance_km.
+
+    Args:
+        conn: Open SQLite connection with the activities table present.
+        activity_id: The id of the activity to update.
+        date: New activity date, or leave unchanged if omitted.
+        activity_type: New activity category, or leave unchanged if omitted.
+        distance_km: New distance in km (use None to clear), or leave unchanged.
+        duration_minutes: New duration, or leave unchanged if omitted.
+        intensity: New intensity, or leave unchanged if omitted.
+
+    Returns:
+        The refreshed Activity if the row exists, otherwise None. If no fields
+        are supplied the function performs no UPDATE and simply returns the
+        current row (or None if missing).
+    """
+    raw: dict[str, object] = {
+        "date": date.isoformat() if isinstance(date, datetime.date) else date,
+        "activity_type": (
+            activity_type.value if isinstance(activity_type, ActivityType) else activity_type
+        ),
+        "distance_km": distance_km,
+        "duration_minutes": duration_minutes,
+        "intensity": intensity.value if isinstance(intensity, Intensity) else intensity,
+    }
+    updates: list[tuple[str, object]] = [
+        (_UPDATE_COLUMNS[name], value)
+        for name, value in raw.items()
+        if not isinstance(value, Unset)
+    ]
+
+    if updates:
+        set_clause = ", ".join(f"{col} = ?" for col, _ in updates)
+        params: tuple[object, ...] = tuple(value for _, value in updates) + (activity_id,)
+        conn.execute(
+            f"UPDATE activities SET {set_clause} WHERE id = ?;",
+            params,
+        )
+        conn.commit()
+
+    return get_activity(conn, activity_id)
+
+
 def delete_activity(conn: sqlite3.Connection, activity_id: int) -> bool:
     """Delete an activity by its id.
 
