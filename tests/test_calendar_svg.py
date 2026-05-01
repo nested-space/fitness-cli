@@ -2,6 +2,7 @@
 
 import datetime
 
+import pytest
 from lxml import etree
 
 from fitness_cli.config.settings import (
@@ -11,7 +12,12 @@ from fitness_cli.config.settings import (
     COLOUR_WEEKEND_DEFAULT,
 )
 from fitness_cli.database.models import Intensity
-from fitness_cli.svg.calendar_svg import set_active_days, set_calendar_month
+from fitness_cli.svg.calendar_svg import (
+    CalendarElementNotFoundError,
+    set_active_days,
+    set_calendar_month,
+    set_month_text,
+)
 
 _NS = "http://www.inkscape.org/namespaces/inkscape"
 
@@ -138,3 +144,93 @@ class TestSetActiveDays:
         set_active_days(root, 2026, 4, {})
         style = _get_style(root, 1, 4)  # April 1, Wednesday
         assert COLOUR_WEEKDAY_DEFAULT in style
+
+
+def _make_month_text_svg(
+    calendar_x: float = 133.25748,
+    calendar_width: float = 74.119537,
+    initial_text: str = "April",
+    initial_text_x: str = "169.62639",
+) -> etree._Element:
+    """Build a minimal SVG with calendar-outer rect and month-text element."""
+    root = etree.Element("svg")
+
+    rect = etree.SubElement(root, "rect")
+    rect.set(f"{{{_NS}}}label", "calendar-outer")
+    rect.set("x", str(calendar_x))
+    rect.set("width", str(calendar_width))
+
+    text = etree.SubElement(root, "text")
+    text.set(f"{{{_NS}}}label", "month-text")
+    text.set("x", initial_text_x)
+    tspan = etree.SubElement(text, "tspan")
+    tspan.set("x", initial_text_x)
+    tspan.text = initial_text
+
+    return root
+
+
+def _get_month_text_elements(
+    root: etree._Element,
+) -> tuple[etree._Element, etree._Element]:
+    """Return the (text, tspan) elements for the month-text label."""
+    text = next(
+        elem for elem in root.iter() if elem.get(f"{{{_NS}}}label") == "month-text"
+    )
+    tspan = next(child for child in text.iter() if child is not text)
+    return text, tspan
+
+
+class TestSetMonthText:
+    """Tests for set_month_text()."""
+
+    def test_sets_month_name(self) -> None:
+        """tspan text becomes the full English month name."""
+        root = _make_month_text_svg()
+        set_month_text(root, 2026, 5)
+        _, tspan = _get_month_text_elements(root)
+        assert tspan.text == "May"
+
+    def test_january(self) -> None:
+        """January is rendered as 'January'."""
+        root = _make_month_text_svg()
+        set_month_text(root, 2026, 1)
+        _, tspan = _get_month_text_elements(root)
+        assert tspan.text == "January"
+
+    def test_centres_on_calendar(self) -> None:
+        """Both text and tspan x attributes match the calendar centre."""
+        root = _make_month_text_svg(calendar_x=100.0, calendar_width=80.0)
+        set_month_text(root, 2026, 5)
+        text, tspan = _get_month_text_elements(root)
+        # Centre = 100 + 80/2 = 140
+        assert float(text.get("x", "")) == pytest.approx(140.0)
+        assert float(tspan.get("x", "")) == pytest.approx(140.0)
+
+    def test_missing_calendar_outer_raises(self) -> None:
+        """Raises if calendar-outer is absent."""
+        root = etree.Element("svg")
+        text = etree.SubElement(root, "text")
+        text.set(f"{{{_NS}}}label", "month-text")
+        with pytest.raises(CalendarElementNotFoundError):
+            set_month_text(root, 2026, 5)
+
+    def test_missing_month_text_raises(self) -> None:
+        """Raises if month-text is absent."""
+        root = etree.Element("svg")
+        rect = etree.SubElement(root, "rect")
+        rect.set(f"{{{_NS}}}label", "calendar-outer")
+        rect.set("x", "0")
+        rect.set("width", "100")
+        with pytest.raises(CalendarElementNotFoundError):
+            set_month_text(root, 2026, 5)
+
+    def test_missing_calendar_geometry_raises(self) -> None:
+        """Raises if calendar-outer lacks x/width attributes."""
+        root = etree.Element("svg")
+        rect = etree.SubElement(root, "rect")
+        rect.set(f"{{{_NS}}}label", "calendar-outer")
+        text = etree.SubElement(root, "text")
+        text.set(f"{{{_NS}}}label", "month-text")
+        with pytest.raises(CalendarElementNotFoundError):
+            set_month_text(root, 2026, 5)

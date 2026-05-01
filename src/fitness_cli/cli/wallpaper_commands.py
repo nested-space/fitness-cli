@@ -22,7 +22,7 @@ from fitness_cli.operations.milestone_operations import (
     consistency_milestone,
     distance_milestone,
 )
-from fitness_cli.svg.calendar_svg import set_active_days, set_calendar_month
+from fitness_cli.svg.calendar_svg import set_active_days, set_calendar_month, set_month_text
 from fitness_cli.svg.medals_svg import set_medal_number, set_medal_visibility
 from fitness_cli.svg.svg_editor import load_svg, write_svg
 
@@ -154,6 +154,7 @@ def _edit_and_write_svg(
     root = tree.getroot()
     set_calendar_month(root, params.year, params.month)
     set_active_days(root, params.year, params.month, params.active_days)
+    set_month_text(root, params.year, params.month)
     set_medal_visibility(root, "distance", earned=params.dist_value >= 1)
     set_medal_visibility(root, "consistency", earned=params.cons_value >= 1)
     set_medal_number(root, "distance", params.dist_value)

@@ -25,9 +25,13 @@ from fitness_cli.config.settings import (
     OPACITY_WEEKEND_DEFAULT,
 )
 from fitness_cli.database.models import Intensity
-from fitness_cli.svg.svg_editor import INKSCAPE_LABEL_ATTR, set_style_prop
+from fitness_cli.svg.svg_editor import INKSCAPE_LABEL_ATTR, find_by_label, set_style_prop
 
 _LABEL_RE = re.compile(r"^calendar-day-(\d{2})-(\d{2})$")
+
+
+class CalendarElementNotFoundError(Exception):
+    """Raised when a required calendar element cannot be found in the SVG."""
 
 
 def _get_label(elem: etree._Element) -> str:
@@ -180,3 +184,53 @@ def set_active_days(
         )
         set_style_prop(elem, "fill", colour)
         set_style_prop(elem, "fill-opacity", "1")
+
+
+def set_month_text(
+    root: etree._Element,
+    year: int,
+    month: int,
+) -> None:
+    """Set the month-text label and horizontally centre it on the calendar.
+
+    Updates the displayed month name (e.g. "May") and aligns the text's
+    horizontal position with the centre of the calendar-outer rectangle so
+    the label tracks the calendar widget regardless of template tweaks.
+
+    Args:
+        root: Root element of the parsed SVG.
+        year: Four-digit year of the target month.
+        month: Month number (1–12).
+
+    Raises:
+        CalendarElementNotFoundError: If the month-text or calendar-outer
+            element is missing, or calendar-outer lacks geometry attributes.
+    """
+    calendar_outer = find_by_label(root, "calendar-outer")
+    if calendar_outer is None:
+        raise CalendarElementNotFoundError("Element 'calendar-outer' not found in SVG.")
+
+    x_attr = calendar_outer.get("x")
+    width_attr = calendar_outer.get("width")
+    if x_attr is None or width_attr is None:
+        raise CalendarElementNotFoundError(
+            "Element 'calendar-outer' is missing 'x' or 'width' attribute."
+        )
+
+    centre_x = float(x_attr) + float(width_attr) / 2
+    centre_x_str = f"{centre_x:.5f}"
+
+    month_text = find_by_label(root, "month-text")
+    if month_text is None:
+        raise CalendarElementNotFoundError("Element 'month-text' not found in SVG.")
+
+    month_name = datetime.date(year, month, 1).strftime("%B")
+
+    month_text.set("x", centre_x_str)
+    for child in month_text.iter():
+        if child is month_text:
+            continue
+        if child.get("x") is not None:
+            child.set("x", centre_x_str)
+        if child.tag.endswith("tspan"):
+            child.text = month_name
