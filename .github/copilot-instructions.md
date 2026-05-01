@@ -241,6 +241,26 @@ class ClassName:
 3. **Use inline comments sparingly** — only for non-obvious logic.
 4. **Keep docstrings focused** on behaviour and contracts, not implementation details.
 
+## Versioning
+
+This project uses **Semantic Versioning** ([semver.org](https://semver.org)):
+
+```
+MAJOR.MINOR.PATCH
+```
+
+| Change type | Version component to bump |
+|---|---|
+| Breaking change to the CLI interface or public API | `MAJOR` |
+| New backward-compatible command, option, or feature | `MINOR` |
+| Bug fix, documentation, or internal refactor | `PATCH` |
+
+**Rules:**
+- Always update `version` in `pyproject.toml` as part of the same commit that introduces the change.
+- Never reuse or skip version numbers.
+- Tag releases with `git tag vMAJOR.MINOR.PATCH` after merging.
+- Commit messages should follow the [Conventional Commits](https://www.conventionalcommits.org) convention: `feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`.
+
 ## Common Commands
 
 ```bash
