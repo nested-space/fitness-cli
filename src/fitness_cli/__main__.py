@@ -1,7 +1,7 @@
 """
-Fitness Wallpaper CLI.
+Fitness CLI.
 
-Entry point for the fitness-wallpaper command-line tool.
+Entry point for the fitness-cli command-line tool.
 """
 
 import click
@@ -12,7 +12,7 @@ from fitness_cli.cli.wallpaper_commands import wallpaper_group
 
 @click.group()
 def main() -> None:
-    """Fitness Wallpaper — record activities and generate monthly SVG wallpapers."""
+    """Fitness CLI — record activities and generate monthly SVG wallpapers."""
 
 
 main.add_command(activity_group)

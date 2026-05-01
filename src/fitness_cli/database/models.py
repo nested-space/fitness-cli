@@ -1,5 +1,5 @@
 """
-Domain model dataclasses for the fitness-wallpaper application.
+Domain model dataclasses for the fitness-cli application.
 
 Defines the core value objects used across all layers:
 - ActivityType: enum of supported activity categories.

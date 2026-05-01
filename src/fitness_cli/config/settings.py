@@ -1,5 +1,5 @@
 """
-Config settings for the fitness-wallpaper application.
+Config settings for the fitness-cli application.
 
 Centralises all configurable constants — paths, colours, and thresholds —
 so that no other module needs to hard-code values.
@@ -12,7 +12,7 @@ from pathlib import Path
 # ---------------------------------------------------------------------------
 
 #: Default path for the SQLite database file.
-DEFAULT_DB_PATH: Path = Path.home() / ".fitness-wallpaper" / "fitness.db"
+DEFAULT_DB_PATH: Path = Path.home() / ".fitness-cli" / "fitness.db"
 
 #: Default path for the SVG wallpaper template.
 DEFAULT_TEMPLATE_PATH: Path = Path(__file__).parents[3] / "wallpaper-template.svg"

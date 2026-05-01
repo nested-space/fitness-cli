@@ -1,8 +1,8 @@
-# Fitness Wallpaper CLI — Copilot Instructions
+# Fitness CLI — Copilot Instructions
 
 ## Project Overview
 
-This is a Python CLI tool (`fitness-wallpaper`) for:
+This is a Python CLI tool (`fitness-cli`) for:
 
 1. **Storing fitness activities** in a lightweight local SQLite database (date, type, distance, duration, intensity).
 2. **Generating a monthly SVG wallpaper** from `wallpaper-template.svg` by:
@@ -43,7 +43,7 @@ Tests for newly written code must be written **alongside** the code — not defe
 
 ```
 src/
-└── fitness_wallpaper/
+└── fitness_cli/
     ├── __main__.py                  # Click CLI root group
     ├── cli/
     │   ├── activity_commands.py     # activity add / list / delete
@@ -272,16 +272,16 @@ source ~/.venvs/fitness/bin/activate
 pip install -e ".[dev]"
 
 # Add an activity
-fitness-wallpaper activity add --date 2026-04-15 --type Run --distance 8.2 --duration 45 --intensity moderate
+fitness-cli activity add --date 2026-04-15 --type Run --distance 8.2 --duration 45 --intensity moderate
 
 # List activities for a month
-fitness-wallpaper activity list --month 2026-04
+fitness-cli activity list --month 2026-04
 
 # Delete an activity
-fitness-wallpaper activity delete 42
+fitness-cli activity delete 42
 
 # Generate the wallpaper SVG for the current month
-fitness-wallpaper wallpaper generate --month 2026-04 --output output.svg
+fitness-cli wallpaper generate --month 2026-04 --output output.svg
 
 # Quality gates
 ruff check src/ tests/
