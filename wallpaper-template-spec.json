@@ -131,8 +131,8 @@
         "locked": true
       },
       {
-        "label": "distance-medal-ribbon-top",
-        "description": "Distance count shown on the medal badge. Note: this label is shared with the ribbon path element — the text is distinguished by having x/y attributes.",
+        "label": "distance-medal-number",
+        "description": "Distance count shown on the medal badge. Label is on the inner <tspan> (which carries the Franklin Gothic Demi font override), not the parent <text>.",
         "x": -50.293, "y": 462.220,
         "font_size_px": 16.933,
         "font_family": "Franklin Gothic Demi",
@@ -143,7 +143,7 @@
       },
       {
         "label": "consistency-medal-number",
-        "description": "Consistency count shown on the medal badge.",
+        "description": "Consistency count shown on the medal badge. Label is on the inner <tspan> (which carries the Franklin Gothic Demi font override), not the parent <text>.",
         "x": 388.137, "y": 458.256,
         "font_size_px": 16.933,
         "font_family": "Franklin Gothic Demi",

@@ -24,7 +24,7 @@ def _make_svg(labels: list[str]) -> etree._Element:
 _DISTANCE_LABELS = [
     "distance-medal",
     "distance-medal-grey-out",
-    "distance-medal-ribbon-top",
+    "distance-medal-number",
 ]
 _CONSISTENCY_LABELS = [
     "consistency-medal",
@@ -104,7 +104,7 @@ class TestSetMedalNumber:
         set_medal_number(distance_svg, "distance", 10)
         NS = "http://www.inkscape.org/namespaces/inkscape"
         for elem in distance_svg.iter():
-            if elem.get(f"{{{NS}}}label") == "distance-medal-ribbon-top":
+            if elem.get(f"{{{NS}}}label") == "distance-medal-number":
                 assert elem.text == "10"
 
     def test_sets_consistency_number(self, consistency_svg: etree._Element) -> None:

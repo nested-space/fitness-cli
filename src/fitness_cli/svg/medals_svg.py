@@ -28,7 +28,7 @@ _GREY_LABEL: dict[Medal, str] = {
 }
 
 _NUMBER_LABEL: dict[Medal, str] = {
-    "distance": "distance-medal-ribbon-top",
+    "distance": "distance-medal-number",
     "consistency": "consistency-medal-number",
 }
 
@@ -91,5 +91,4 @@ def set_medal_number(
     elem = find_by_label(root, label)
     if elem is None:
         raise MedalElementNotFoundError(f"Element '{label}' not found in SVG.")
-    # lxml text nodes are set directly; tspan children (if any) are left intact.
     elem.text = str(value)
