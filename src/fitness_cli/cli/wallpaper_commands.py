@@ -4,7 +4,7 @@ CLI command for generating the monthly SVG wallpaper.
 Responsibilities:
 - Parse the --month, --template, and --output options.
 - Orchestrate the milestone calculations and SVG transformations.
-- Write the finished SVG to the output path.
+- Write the wallpaper and lockscreen variants as both SVG and JPEG files.
 """
 
 import datetime
@@ -24,7 +24,9 @@ from fitness_cli.operations.milestone_operations import (
 )
 from fitness_cli.svg.calendar_svg import set_active_days, set_calendar_month, set_month_text
 from fitness_cli.svg.medals_svg import set_medal_number, set_medal_visibility
+from fitness_cli.svg.raster import svg_tree_to_jpg
 from fitness_cli.svg.svg_editor import load_svg, write_svg
+from fitness_cli.svg.title_svg import set_title_visibility
 
 
 @dataclass(frozen=True)
@@ -71,21 +73,21 @@ def wallpaper_group() -> None:
 @click.option(
     "--output",
     "-o",
-    "output_path_str",
-    default="output.svg",
-    metavar="PATH",
+    "output_base_str",
+    default="output",
+    metavar="BASE",
     show_default=True,
-    help="Path for the generated SVG.",
+    help="Base name for generated files; produces <BASE>-wallpaper.{svg,jpg} and <BASE>-lockscreen.{svg,jpg}.",
 )
 def generate_cmd(
     month_str: str | None,
     template_path_str: str | None,
-    output_path_str: str,
+    output_base_str: str,
 ) -> None:
-    """Generate the monthly fitness wallpaper SVG."""
+    """Generate the monthly fitness wallpaper and lockscreen SVG/JPG pair."""
     year, month = _resolve_month(month_str)
     template_path = Path(template_path_str) if template_path_str else DEFAULT_TEMPLATE_PATH
-    output_path = Path(output_path_str)
+    output_base = Path(output_base_str)
 
     conn = get_connection()
     dist_value = distance_milestone(conn)
@@ -100,11 +102,13 @@ def generate_cmd(
         dist_value=dist_value,
         cons_value=cons_value,
     )
-    _edit_and_write_svg(template_path, output_path, params)
+    outputs = _edit_and_write_outputs(template_path, output_base, params)
 
     dist_status = "earned" if params.dist_value >= 1 else "not earned"
     cons_status = "earned" if params.cons_value >= 1 else "not earned"
-    click.echo(f"Wallpaper written to: {output_path}")
+    click.echo("Wallpaper outputs written:")
+    for path in outputs:
+        click.echo(f"  - {path}")
     click.echo(f"  Distance milestone : {params.dist_value} km ({dist_status})")
     click.echo(f"  Consistency streak : {params.cons_value} week(s) ({cons_status})")
     click.echo(f"  Active days        : {len(params.active_days)}")
@@ -133,17 +137,23 @@ def _resolve_month(month_str: str | None) -> tuple[int, int]:
         sys.exit(1)
 
 
-def _edit_and_write_svg(
+def _edit_and_write_outputs(
     template_path: Path,
-    output_path: Path,
+    output_base: Path,
     params: _WallpaperParams,
-) -> None:
-    """Load the SVG template, apply all edits, and write the result.
+) -> list[Path]:
+    """Apply common edits, then write the wallpaper and lockscreen variants.
+
+    The same template tree is mutated in place between writes — only the title
+    group's visibility differs between the two variants.
 
     Args:
         template_path: Path to the source SVG template.
-        output_path: Destination path for the generated SVG.
+        output_base: Base path for the generated files (suffixes are appended).
         params: Computed wallpaper parameters (month, milestones, active days).
+
+    Returns:
+        The four output paths in order: wallpaper SVG, wallpaper JPG, lockscreen SVG, lockscreen JPG.
 
     Raises:
         SystemExit: If the template file cannot be found.
@@ -162,4 +172,18 @@ def _edit_and_write_svg(
     set_medal_visibility(root, "consistency", earned=params.cons_value >= 1)
     set_medal_number(root, "distance", params.dist_value)
     set_medal_number(root, "consistency", params.cons_value)
-    write_svg(tree, output_path)
+
+    wallpaper_svg = output_base.with_name(f"{output_base.name}-wallpaper.svg")
+    wallpaper_jpg = output_base.with_name(f"{output_base.name}-wallpaper.jpg")
+    lockscreen_svg = output_base.with_name(f"{output_base.name}-lockscreen.svg")
+    lockscreen_jpg = output_base.with_name(f"{output_base.name}-lockscreen.jpg")
+
+    set_title_visibility(root, visible=True)
+    write_svg(tree, wallpaper_svg)
+    svg_tree_to_jpg(tree, wallpaper_jpg)
+
+    set_title_visibility(root, visible=False)
+    write_svg(tree, lockscreen_svg)
+    svg_tree_to_jpg(tree, lockscreen_jpg)
+
+    return [wallpaper_svg, wallpaper_jpg, lockscreen_svg, lockscreen_jpg]

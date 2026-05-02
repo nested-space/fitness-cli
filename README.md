@@ -85,20 +85,26 @@ Intensity legend: `○` none · `◎` light · `◉` moderate · `●` high · `
 fitness-cli activity delete 42
 ```
 
-### Generate the monthly SVG wallpaper
+### Generate the monthly wallpaper and lockscreen
+
+Each run produces four files from one base name: a full wallpaper and a
+lockscreen variant (with the operation title hidden), each as both SVG and
+JPG. `--output BASE` controls the prefix; the suffixes `-wallpaper.{svg,jpg}`
+and `-lockscreen.{svg,jpg}` are appended automatically.
 
 ```bash
-# Current month, default output path (output.svg)
+# Current month — writes output-wallpaper.{svg,jpg} and output-lockscreen.{svg,jpg}
 fitness-cli wallpaper generate
 
-# Specific month and output path
-fitness-cli wallpaper generate --month 2026-05 --output ~/Desktop/may-wallpaper.svg
+# Specific month and base path
+fitness-cli wallpaper generate --month 2026-05 --output ~/Desktop/may
 
 # Custom SVG template
-fitness-cli wallpaper generate --template my-template.svg --output wallpaper.svg
+fitness-cli wallpaper generate --template my-template.svg --output wallpaper
 ```
 
-The command prints a summary of earned milestones and active days.
+The command prints the four output paths plus a summary of earned milestones
+and active days.
 
 ## Milestones
 

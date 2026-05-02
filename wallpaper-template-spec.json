@@ -156,6 +156,11 @@
 
     "toggleable_groups": [
       {
+        "label": "title",
+        "description": "Operation title block (title-1, title-2, title-3). Hide to produce the lockscreen variant where device clock/notifications occupy this region.",
+        "default_display": "inline"
+      },
+      {
         "label": "distance-medal",
         "description": "Full-colour earned distance medal. Show when the distance medal is earned.",
         "default_display": "none",
