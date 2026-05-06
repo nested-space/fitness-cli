@@ -5,6 +5,7 @@ Centralises all configurable constants — paths, colours, and thresholds —
 so that no other module needs to hard-code values.
 """
 
+import os
 from pathlib import Path
 
 # ---------------------------------------------------------------------------
@@ -42,3 +43,15 @@ COLOUR_WEEKEND_DEFAULT: str = "#000000"
 
 #: Default weekend fill-opacity (no activity).
 OPACITY_WEEKEND_DEFAULT: str = "0.116777"
+
+# ---------------------------------------------------------------------------
+# Wallpaper API
+# ---------------------------------------------------------------------------
+
+#: Base URL of the wallpaper API. Read from the WALLPAPER_API_URL env var; the
+#: upload command checks for None at runtime and fails fast if unset.
+WALLPAPER_API_URL: str | None = os.environ.get("WALLPAPER_API_URL")
+
+#: Image upload path template, joined onto WALLPAPER_API_URL. The {name}
+#: placeholder is the resource identifier the API will store the image under.
+WALLPAPER_API_IMAGE_PATH: str = "/api/v1/i/{name}"

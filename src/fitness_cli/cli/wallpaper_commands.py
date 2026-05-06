@@ -1,19 +1,22 @@
 """
-CLI command for generating the monthly SVG wallpaper.
+CLI commands for the monthly SVG wallpaper.
 
 Responsibilities:
 - Parse the --month, --template, and --output options.
 - Orchestrate the milestone calculations and SVG transformations.
 - Write the wallpaper and lockscreen variants as both SVG and JPEG files.
+- Upload the generated SVGs to the wallpaper API.
 """
 
 import datetime
 import sys
+import tempfile
 from dataclasses import dataclass
 from pathlib import Path
 
 import click
 
+from fitness_cli.config import settings
 from fitness_cli.config.settings import DEFAULT_TEMPLATE_PATH
 from fitness_cli.database.connection import get_connection
 from fitness_cli.database.models import Intensity
@@ -22,6 +25,7 @@ from fitness_cli.operations.milestone_operations import (
     consistency_milestone,
     distance_milestone,
 )
+from fitness_cli.operations.upload_operations import upload_svg
 from fitness_cli.svg.calendar_svg import set_active_days, set_calendar_month, set_month_text
 from fitness_cli.svg.medals_svg import set_medal_number, set_medal_visibility
 from fitness_cli.svg.raster import svg_tree_to_jpg
@@ -77,7 +81,10 @@ def wallpaper_group() -> None:
     default="output",
     metavar="BASE",
     show_default=True,
-    help="Base name for generated files; produces <BASE>-wallpaper.{svg,jpg} and <BASE>-lockscreen.{svg,jpg}.",
+    help=(
+        "Base name for generated files; produces "
+        "<BASE>-wallpaper.{svg,jpg} and <BASE>-lockscreen.{svg,jpg}."
+    ),
 )
 def generate_cmd(
     month_str: str | None,
@@ -85,24 +92,9 @@ def generate_cmd(
     output_base_str: str,
 ) -> None:
     """Generate the monthly fitness wallpaper and lockscreen SVG/JPG pair."""
-    year, month = _resolve_month(month_str)
-    template_path = Path(template_path_str) if template_path_str else DEFAULT_TEMPLATE_PATH
-    output_base = Path(output_base_str)
-
-    conn = get_connection()
-    dist_value = distance_milestone(conn)
-    cons_value = consistency_milestone(conn)
-    activities = list_activities(conn, month=datetime.date(year, month, 1))
-    conn.close()
-
-    params = _WallpaperParams(
-        year=year,
-        month=month,
-        active_days=build_active_days(activities),
-        dist_value=dist_value,
-        cons_value=cons_value,
+    params, outputs = _generate_wallpaper_outputs(
+        month_str, template_path_str, Path(output_base_str)
     )
-    outputs = _edit_and_write_outputs(template_path, output_base, params)
 
     dist_status = "earned" if params.dist_value >= 1 else "not earned"
     cons_status = "earned" if params.cons_value >= 1 else "not earned"
@@ -112,6 +104,86 @@ def generate_cmd(
     click.echo(f"  Distance milestone : {params.dist_value} km ({dist_status})")
     click.echo(f"  Consistency streak : {params.cons_value} week(s) ({cons_status})")
     click.echo(f"  Active days        : {len(params.active_days)}")
+
+
+@wallpaper_group.command("upload")
+@click.option(
+    "--month",
+    "-m",
+    "month_str",
+    default=None,
+    metavar="YYYY-MM",
+    help="Month to render (default: current month).",
+)
+@click.option(
+    "-y",
+    "--yes",
+    "skip_confirm",
+    is_flag=True,
+    help="Skip the overwrite confirmation prompt.",
+)
+def upload_cmd(month_str: str | None, skip_confirm: bool) -> None:
+    """Generate fresh wallpapers and upload them to the wallpaper API."""
+    api_url = settings.WALLPAPER_API_URL
+    if not api_url:
+        click.echo(
+            "Error: WALLPAPER_API_URL is not set. Export it before running this command.",
+            err=True,
+        )
+        sys.exit(1)
+
+    if not skip_confirm:
+        click.confirm(
+            "This will overwrite fcli-wallpaper and fcli-lockscreen on the API.\nContinue?",
+            abort=True,
+        )
+
+    with tempfile.TemporaryDirectory(prefix="fcli-upload-") as tmpdir:
+        output_base = Path(tmpdir) / "output"
+        _, outputs = _generate_wallpaper_outputs(month_str, None, output_base)
+
+        svg_by_variant = {
+            "fcli-wallpaper": next(p for p in outputs if p.name.endswith("-wallpaper.svg")),
+            "fcli-lockscreen": next(p for p in outputs if p.name.endswith("-lockscreen.svg")),
+        }
+
+        for upload_name, svg_path in svg_by_variant.items():
+            result = upload_svg(upload_name, svg_path, api_url)
+            if not result.success:
+                click.echo(f"Error uploading {upload_name}: {result.error}", err=True)
+                sys.exit(1)
+            click.echo(f"✓ {upload_name} uploaded successfully.")
+
+
+def _generate_wallpaper_outputs(
+    month_str: str | None,
+    template_path_str: str | None,
+    output_base: Path,
+) -> tuple[_WallpaperParams, list[Path]]:
+    """Resolve config, compute params, and write wallpaper/lockscreen SVG+JPG files.
+
+    Shared by `generate` and `upload` commands.
+    """
+    year, month = _resolve_month(month_str)
+    template_path = Path(template_path_str) if template_path_str else DEFAULT_TEMPLATE_PATH
+
+    conn = get_connection()
+    try:
+        dist_value = distance_milestone(conn)
+        cons_value = consistency_milestone(conn)
+        activities = list_activities(conn, month=datetime.date(year, month, 1))
+    finally:
+        conn.close()
+
+    params = _WallpaperParams(
+        year=year,
+        month=month,
+        active_days=build_active_days(activities),
+        dist_value=dist_value,
+        cons_value=cons_value,
+    )
+    outputs = _edit_and_write_outputs(template_path, output_base, params)
+    return params, outputs
 
 
 def _resolve_month(month_str: str | None) -> tuple[int, int]:
@@ -153,7 +225,8 @@ def _edit_and_write_outputs(
         params: Computed wallpaper parameters (month, milestones, active days).
 
     Returns:
-        The four output paths in order: wallpaper SVG, wallpaper JPG, lockscreen SVG, lockscreen JPG.
+        The four output paths in order: wallpaper SVG, wallpaper JPG,
+        lockscreen SVG, lockscreen JPG.
 
     Raises:
         SystemExit: If the template file cannot be found.
