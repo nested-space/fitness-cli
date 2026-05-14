@@ -39,9 +39,10 @@ def strength_group() -> None:
     "--date",
     "-d",
     "date_str",
-    required=True,
+    default=lambda: datetime.date.today().isoformat(),
+    show_default="today",
     metavar="YYYY-MM-DD",
-    help="Date of the strength session.",
+    help="Date of the strength session (defaults to today).",
 )
 def add_cmd(date_str: str) -> None:
     """Record one or more strength exercises for a date.
