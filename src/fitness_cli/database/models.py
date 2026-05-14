@@ -5,6 +5,7 @@ Defines the core value objects used across all layers:
 - ActivityType: enum of supported activity categories.
 - Intensity: enum of activity intensity levels.
 - Activity: immutable record of a single fitness activity.
+- StrengthExercise: immutable record of a single strength exercise.
 """
 
 import datetime
@@ -76,3 +77,57 @@ class Activity:
     distance_km: float | None
     duration_minutes: float
     intensity: Intensity
+
+
+@dataclass(frozen=True)
+class StrengthExerciseInput:
+    """The fields required to record a new strength exercise (no database id).
+
+    Every metric field is optional so the same shape covers bodyweight, timed,
+    and resistance exercises:
+    - Plank: duration_seconds set; reps and weight None.
+    - Leg raises: sets and reps set; weight and duration None.
+    - Bench press: sets, reps, and weight_kg set; duration None.
+
+    Attributes:
+        date: Calendar date on which the exercise was performed.
+        exercise_name: Free-form name of the exercise (e.g. "Plank", "Bench press").
+        sets: Number of sets performed; None if not tracked.
+        reps: Reps per set; None for timed exercises.
+        weight_kg: Resistance weight per set in kg; None for bodyweight exercises.
+        duration_seconds: Duration per set in seconds; None for rep-based exercises.
+        notes: Free-form notes; None if no notes were recorded.
+    """
+
+    date: datetime.date
+    exercise_name: str
+    sets: int | None
+    reps: int | None
+    weight_kg: float | None
+    duration_seconds: float | None
+    notes: str | None
+
+
+@dataclass(frozen=True)
+class StrengthExercise:
+    """Immutable record of a single strength exercise.
+
+    Attributes:
+        id: Database row identifier; None for unsaved exercises.
+        date: Calendar date on which the exercise was performed.
+        exercise_name: Free-form name of the exercise.
+        sets: Number of sets performed; None if not tracked.
+        reps: Reps per set; None for timed exercises.
+        weight_kg: Resistance weight per set in kg; None for bodyweight exercises.
+        duration_seconds: Duration per set in seconds; None for rep-based exercises.
+        notes: Free-form notes; None if no notes were recorded.
+    """
+
+    id: int | None
+    date: datetime.date
+    exercise_name: str
+    sets: int | None
+    reps: int | None
+    weight_kg: float | None
+    duration_seconds: float | None
+    notes: str | None

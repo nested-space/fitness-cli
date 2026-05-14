@@ -46,6 +46,15 @@ class TestGetConnection:
         assert cur.fetchone() is not None
         tmp_db.close()
 
+    def test_strength_exercises_table_exists(self, tmp_db: sqlite3.Connection) -> None:
+        """The strength_exercises table is created by get_connection()."""
+        cur = tmp_db.execute(
+            "SELECT name FROM sqlite_master WHERE type='table' "
+            "AND name='strength_exercises';"
+        )
+        assert cur.fetchone() is not None
+        tmp_db.close()
+
     def test_idempotent(self, tmp_path: Path) -> None:
         """Calling get_connection() twice on the same path does not raise."""
         db_path = tmp_path / "fitness.db"

@@ -7,6 +7,7 @@ Entry point for the fitness-cli command-line tool.
 import click
 
 from fitness_cli.cli.activity_commands import activity_group
+from fitness_cli.cli.strength_commands import strength_group
 from fitness_cli.cli.wallpaper_commands import wallpaper_group
 
 
@@ -16,4 +17,5 @@ def main() -> None:
 
 
 main.add_command(activity_group)
+main.add_command(strength_group)
 main.add_command(wallpaper_group)

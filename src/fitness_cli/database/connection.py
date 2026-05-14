@@ -21,6 +21,17 @@ CREATE TABLE IF NOT EXISTS activities (
     duration_minutes REAL    NOT NULL,
     intensity        TEXT    NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS strength_exercises (
+    id               INTEGER PRIMARY KEY AUTOINCREMENT,
+    date             TEXT    NOT NULL,
+    exercise_name    TEXT    NOT NULL,
+    sets             INTEGER,
+    reps             INTEGER,
+    weight_kg        REAL,
+    duration_seconds REAL,
+    notes            TEXT
+);
 """
 
 
