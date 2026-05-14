@@ -3,6 +3,8 @@ CLI commands for recording, listing, and visualising fitness activities.
 
 Responsibilities:
 - Parse user input for the activity add, list, recent, show, and delete sub-commands.
+- The `add` sub-command runs an interactive loop, prompting for each activity
+  until the user enters a blank activity type.
 - Delegate all business logic to the operations and display layers.
 - Print user-facing output to stdout and errors to stderr.
 """
@@ -43,69 +45,53 @@ def activity_group() -> None:
     "date_str",
     required=True,
     metavar="YYYY-MM-DD",
-    help="Date of the activity.",
+    help="Date of the activity session.",
 )
-@click.option(
-    "--type",
-    "-a",
-    "activity_type",
-    required=True,
-    type=click.Choice([t.value for t in ActivityType], case_sensitive=False),
-    help="Activity category.",
-)
-@click.option(
-    "--distance",
-    "-k",
-    "distance_km",
-    type=float,
-    default=None,
-    help="Distance in km.",
-)
-@click.option(
-    "--duration",
-    "-t",
-    "duration_minutes",
-    required=True,
-    type=float,
-    help="Duration in minutes.",
-)
-@click.option(
-    "--intensity",
-    "-i",
-    required=True,
-    type=click.Choice([i.value for i in Intensity], case_sensitive=False),
-    help="Self-reported intensity level.",
-)
-def add_cmd(
-    date_str: str,
-    activity_type: str,
-    distance_km: float | None,
-    duration_minutes: float,
-    intensity: str,
-) -> None:
-    """Record a new fitness activity."""
-    try:
-        date = datetime.date.fromisoformat(date_str)
-    except ValueError:
-        click.echo(f"Error: invalid date '{date_str}'. Use YYYY-MM-DD format.", err=True)
-        sys.exit(1)
+def add_cmd(date_str: str) -> None:
+    """Record one or more activities for a date.
+
+    Runs an interactive loop, prompting for each activity until a blank
+    activity type is entered.
+    """
+    session_date = _parse_date(date_str)
 
     conn = get_connection()
-    activity = add_activity(
-        conn,
-        ActivityInput(
-            date=date,
-            activity_type=ActivityType(activity_type),
-            distance_km=distance_km,
-            duration_minutes=duration_minutes,
-            intensity=Intensity(intensity),
-        ),
-    )
-    conn.close()
-    _console.print(
-        f"[green]✓[/green] Added activity [bold]#{activity.id}[/bold]: "
-        f"{activity.activity_type} on {activity.date}."
-    )
+    recorded = 0
+    try:
+        while True:
+            activity_type = _prompt_activity_type("Activity type (blank to finish)")
+            if activity_type is None:
+                break
+
+            distance_km = _prompt_optional_float("Distance km (blank for non-distance)")
+            duration_minutes = _prompt_required_float("Duration minutes")
+            intensity = _prompt_intensity("Intensity [light/moderate/high/peak]")
+
+            activity = add_activity(
+                conn,
+                ActivityInput(
+                    date=session_date,
+                    activity_type=activity_type,
+                    distance_km=distance_km,
+                    duration_minutes=duration_minutes,
+                    intensity=intensity,
+                ),
+            )
+            recorded += 1
+            _console.print(
+                f"[green]✓[/green] Added activity [bold]#{activity.id}[/bold]: "
+                f"{activity.activity_type} on {activity.date}."
+            )
+    finally:
+        conn.close()
+
+    if recorded == 0:
+        _console.print("[dim]No activities recorded.[/dim]")
+    else:
+        _console.print(
+            f"[bold]Recorded {recorded} "
+            f"activit{'ies' if recorded != 1 else 'y'} on {session_date}.[/bold]"
+        )
 
 
 @activity_group.command("list")
@@ -295,6 +281,80 @@ def update_cmd(  # pylint: disable=too-many-arguments,too-many-positional-argume
 # ---------------------------------------------------------------------------
 # Private helpers
 # ---------------------------------------------------------------------------
+
+def _prompt_activity_type(prompt_text: str) -> ActivityType | None:
+    """Prompt for an activity type; return None on blank input (loop sentinel).
+
+    Re-prompts on unrecognised input, listing the valid choices.
+    """
+    valid = {t.value.lower(): t for t in ActivityType}
+    while True:
+        raw = click.prompt(prompt_text, default="", show_default=False).strip()
+        if not raw:
+            return None
+        match = valid.get(raw.lower())
+        if match is not None:
+            return match
+        choices = ", ".join(t.value for t in ActivityType)
+        click.echo(
+            f"Invalid activity type '{raw}'. Valid choices: {choices}.",
+            err=True,
+        )
+
+
+def _prompt_intensity(prompt_text: str) -> Intensity:
+    """Prompt for an intensity; re-prompt on blank or unrecognised input."""
+    valid = {i.value.lower(): i for i in Intensity}
+    while True:
+        raw = click.prompt(prompt_text, default="", show_default=False).strip()
+        if not raw:
+            click.echo("Required. Enter light, moderate, high, or peak.", err=True)
+            continue
+        match = valid.get(raw.lower())
+        if match is not None:
+            return match
+        click.echo(
+            f"Invalid intensity '{raw}'. Choose light, moderate, high, or peak.",
+            err=True,
+        )
+
+
+def _prompt_required_float(prompt_text: str) -> float:
+    """Prompt for a required float; re-prompt on blank or invalid input."""
+    while True:
+        raw = click.prompt(prompt_text, default="", show_default=False).strip()
+        if not raw:
+            click.echo("Required. Enter a number.", err=True)
+            continue
+        try:
+            return float(raw)
+        except ValueError:
+            click.echo(f"Invalid number '{raw}'. Try again.", err=True)
+
+
+def _prompt_optional_float(prompt_text: str) -> float | None:
+    """Prompt for an optional float; return None on blank input.
+
+    Re-prompts on invalid input instead of crashing.
+    """
+    while True:
+        raw = click.prompt(prompt_text, default="", show_default=False).strip()
+        if not raw:
+            return None
+        try:
+            return float(raw)
+        except ValueError:
+            click.echo(f"Invalid number '{raw}'. Try again or leave blank.", err=True)
+
+
+def _parse_date(date_str: str) -> datetime.date:
+    """Parse a YYYY-MM-DD string, exiting with an error on failure."""
+    try:
+        return datetime.date.fromisoformat(date_str)
+    except ValueError:
+        click.echo(f"Error: invalid date '{date_str}'. Use YYYY-MM-DD format.", err=True)
+        sys.exit(1)
+
 
 def _parse_month(month_str: str | None) -> datetime.date | None:
     """Parse a YYYY-MM string to the first of that month, or None.

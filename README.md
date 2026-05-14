@@ -30,22 +30,30 @@ The tool is available as both `fitness-cli` and `fcli`.
 
 ## Usage
 
-### Record an activity
+### Record activities
 
 ```bash
-fitness-cli activity add \
-  --date 2026-05-01 \
-  --type Run \
-  --distance 8.2 \
-  --duration 45 \
-  --intensity moderate
+fitness-cli activity add --date 2026-05-01
+```
+
+This starts an interactive session that prompts for each activity in turn.
+Enter a blank activity type to finish.
+
+```
+Activity type (blank to finish): Run
+Distance km (blank for non-distance): 8.2
+Duration minutes: 45
+Intensity [light/moderate/high/peak]: moderate
+✓ Added activity #1: Run on 2026-05-01.
+Activity type (blank to finish):
+Recorded 1 activity on 2026-05-01.
 ```
 
 **Activity types:** `Bike Indoor`, `Elliptical`, `Strength`, `Trail Run`, `Run`, `Treadmill`, `Walk`, `Hike`, `Bike`
 
 **Intensity levels:** `light`, `moderate`, `high`, `peak`
 
-`--distance` is optional (e.g. for Strength sessions).
+Leave the distance prompt blank for non-distance activities (e.g. Strength sessions).
 
 ### List activities
 
