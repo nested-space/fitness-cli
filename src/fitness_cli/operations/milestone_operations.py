@@ -44,7 +44,7 @@ def distance_milestone(
     """Return the distance milestone value for the current period.
 
     The milestone is the floor of the maximum single-activity distance (km)
-    recorded in the 4-week window ending on the day before reference_date,
+    recorded in the 4-week window ending on reference_date (inclusive),
     considering only running activities (Run and Treadmill).
     A milestone of 0 means no qualifying activity exists.
 
@@ -65,7 +65,7 @@ def distance_milestone(
         f"""
         SELECT MAX(distance_km) AS max_distance
         FROM activities
-        WHERE date >= ? AND date < ?
+        WHERE date >= ? AND date <= ?
           AND distance_km IS NOT NULL
           AND activity_type IN ({placeholders})
         """,

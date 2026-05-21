@@ -72,14 +72,14 @@ class TestDistanceMilestone:
         assert distance_milestone(conn, reference_date=REF) == 0
 
     def test_includes_activity_exactly_4_weeks_ago(self, conn: sqlite3.Connection) -> None:
-        """Activity exactly 4 weeks before reference is included (window_start ≤ date < today)."""
+        """Activity exactly 4 weeks before reference is included (window_start ≤ date ≤ today)."""
         _add(conn, REF - datetime.timedelta(weeks=4), distance=10.0)
         assert distance_milestone(conn, reference_date=REF) == 10
 
-    def test_excludes_reference_date_itself(self, conn: sqlite3.Connection) -> None:
-        """Activity on the reference date is excluded (window is date < today)."""
+    def test_includes_reference_date_itself(self, conn: sqlite3.Connection) -> None:
+        """Activity on the reference date is included (window is date <= today)."""
         _add(conn, REF, distance=15.0)
-        assert distance_milestone(conn, reference_date=REF) == 0
+        assert distance_milestone(conn, reference_date=REF) == 15
 
     def test_ignores_activities_without_distance(self, conn: sqlite3.Connection) -> None:
         """Strength activities with no distance do not affect the milestone."""
